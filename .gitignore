@@ -13,3 +13,6 @@ result-*
 
 # Ignore Gradle build output directory
 build
+
+# Ignore jdtls build directory
+lib/bin
