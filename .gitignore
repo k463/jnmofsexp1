@@ -1,0 +1,15 @@
+# direnv
+
+.direnv
+
+# Nix
+
+# Ignore build outputs from performing a nix-build or `nix build` command
+result
+result-*
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
