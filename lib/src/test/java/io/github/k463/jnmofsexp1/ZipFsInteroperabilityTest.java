@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -66,19 +67,23 @@ public class ZipFsInteroperabilityTest {
     @Test
     public void createZippedFile() throws Exception {
         System.out.println("ZipFsInteroperabilityTest.createZippedFile:");
-        Path testZipFile = utils.getTestFsRoot().resolve("test-file.zip");
-        assertFalse(Files.exists(testZipFile));
-        URI zipFsUri = URI.create("jar:%s".formatted(testZipFile.toUri()));
-        // create the zip file if it doesn't exist
-        Map<String, String> zipOpts = Collections.singletonMap(
-            "create",
-            "true"
+
+        var mfs = FileSystems.newFileSystem(
+            utils.getFsUri(""),
+            Collections.emptyMap()
         );
+        var root = mfs.getRootDirectories().iterator().next();
+
+        var testZipFile = root.resolve("test-file.zip");
+        assertFalse(Files.exists(testZipFile));
+        var zipFsUri = URI.create("jar:%s".formatted(testZipFile.toUri()));
+        // create the zip file if it doesn't exist
+        var zipOpts = Collections.singletonMap("create", "true");
         System.out.println(
             "testZipFile=%s\nzipFsUri=%s".formatted(testZipFile, zipFsUri)
         );
 
-        Path ttUnwrappedPath = Paths.get(
+        var ttUnwrappedPath = Paths.get(
             new URI(zipFsUri.getSchemeSpecificPart())
         ).toAbsolutePath();
         System.out.println(
@@ -88,10 +93,16 @@ public class ZipFsInteroperabilityTest {
             )
         );
 
-        try (FileSystem zipFs = FileSystems.newFileSystem(zipFsUri, zipOpts)) {
-            Path testFile = zipFs.getPath("test-inside-zip.txt");
+        System.out.println(
+            "FileSystemProvider.installedProviders() => %s".formatted(
+                FileSystemProvider.installedProviders()
+            )
+        );
+
+        try (var zipFs = FileSystems.newFileSystem(zipFsUri, zipOpts)) {
+            var testFile = zipFs.getPath("test-inside-zip.txt");
             try (
-                BufferedWriter writer = Files.newBufferedWriter(
+                var writer = Files.newBufferedWriter(
                     testFile,
                     StandardOpenOption.CREATE_NEW,
                     StandardOpenOption.WRITE
