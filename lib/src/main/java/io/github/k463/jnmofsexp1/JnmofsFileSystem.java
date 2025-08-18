@@ -271,11 +271,24 @@ public class JnmofsFileSystem extends FileSystem {
         if (Files.isDirectory(absPath)) {
             uriPath = uriPath + "/";
         }
+        // System.out.println(
+        //     "JnmofsFileSystem.toUri(%s):\n  absPath=%s\n  root=%s\n  uriPath=%s\n  this.uri=%s\n  this.uri.scheme=%s\n  this.uri.userInfo=%s\n  this.uri.host=%s\n  this.uri.port=%d".formatted(
+        //         path,
+        //         absPath,
+        //         root,
+        //         uriPath,
+        //         uri,
+        //         uri.getScheme(),
+        //         uri.getUserInfo(),
+        //         uri.getHost(),
+        //         uri.getPort()
+        //     )
+        // );
         try {
             return new URI(
                 uri.getScheme(),
                 uri.getUserInfo(),
-                uri.getHost(),
+                Optional.ofNullable(uri.getHost()).orElse(""),
                 uri.getPort(),
                 uriPath,
                 null,

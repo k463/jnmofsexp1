@@ -200,6 +200,7 @@ public class SimplePathTest {
 
     @Test
     public void testUriConversion() throws Exception {
+        System.out.println("SimplePathTest.testUriConversion:");
         FileSystem mfs4 = utils.createTestFs(
             "mfs4",
             Map.of(
@@ -235,7 +236,7 @@ public class SimplePathTest {
         }
 
         FileSystem mfs5 = utils.createTestFs();
-        assertEquals(URI.create("jnmofs:///"), mfs5.getPath("/").toUri());
+        assertEquals(URI.create("jnmofs:////"), mfs5.getPath("/").toUri());
         assertEquals(
             URI.create("jnmofs:////foo/bar"),
             mfs5.getPath("/foo/bar").toUri()
