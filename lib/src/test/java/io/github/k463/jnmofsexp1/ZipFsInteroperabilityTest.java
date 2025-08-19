@@ -93,11 +93,15 @@ public class ZipFsInteroperabilityTest {
             )
         );
 
-        System.out.println(
-            "FileSystemProvider.installedProviders() => %s".formatted(
-                FileSystemProvider.installedProviders()
-            )
-        );
+        // {@code FileSystems.newFileSystem} swallows UnsupportedOperationException
+        // so when using it we can't tell when the Zip provider is trying to call
+        // a method in our filesystem that is unimplemented
+        var zipProvider = FileSystemProvider.installedProviders()
+            .stream()
+            .filter(fsp -> "jar".equalsIgnoreCase(fsp.getScheme()))
+            .findFirst()
+            .get();
+        System.out.println("zipProvider=%s".formatted(zipProvider));
 
         try (var zipFs = FileSystems.newFileSystem(zipFsUri, zipOpts)) {
             var testFile = zipFs.getPath("test-inside-zip.txt");

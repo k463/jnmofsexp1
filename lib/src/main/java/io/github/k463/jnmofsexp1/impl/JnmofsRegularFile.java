@@ -403,11 +403,23 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
 
         private void dumpPreviewBufRead(ByteBuffer buf, boolean fromCurrent) {
             int origPosition = buf.position();
+            int origLimit = buf.limit();
             int fromPosition = fromCurrent ? origPosition : 0;
             final byte[] bytes = new byte[buf.capacity() - fromPosition];
+            System.out.println(
+                "InternalFileChannel[file.id=%d].dumpPreviewBufRead: buf=%s, origPosition=%d, fromPosition=%d, bytes.length=%d".formatted(
+                    id(),
+                    buf.toString(),
+                    origPosition,
+                    fromPosition,
+                    bytes.length
+                )
+            );
             buf.position(fromPosition);
+            buf.limit(buf.capacity());
             buf.get(bytes);
             buf.position(origPosition);
+            buf.limit(origLimit);
             final String s = new String(bytes);
             System.out.println(
                 "InternalFileChannel[file.id=%d].dumpPreviewBufRead: buf=%s, read=`%s`".formatted(
