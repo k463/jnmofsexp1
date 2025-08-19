@@ -22,6 +22,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -68,12 +69,20 @@ public class JnmofsTestUtils {
     }
 
     public Path getTestFsRoot() throws URISyntaxException, IOException {
-        return createTestFs().getRootDirectories().iterator().next();
+        FileSystem fs;
+        try {
+            fs = getTestFs();
+        } catch (FileSystemNotFoundException e) {
+            fs = createTestFs();
+        }
+        return fs.getRootDirectories().iterator().next();
     }
 
-    public Path createTestFile() throws URISyntaxException, IOException {
+    public Path getOrCreateTestFile() throws URISyntaxException, IOException {
         Path testPath = getTestFsRoot().resolve("test-file-1");
-        Files.createFile(testPath);
+        if (!Files.exists(testPath)) {
+            Files.createFile(testPath);
+        }
         return testPath;
     }
 

@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.NonReadableChannelException;
 import java.nio.channels.NonWritableChannelException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -37,7 +38,7 @@ public class JnmofsFileChannelTest {
 
     private FileChannel channel(OpenOption... options)
         throws URISyntaxException, IOException {
-        Path testFile = utils.createTestFile();
+        Path testFile = utils.getOrCreateTestFile();
         return FileChannel.open(
             testFile,
             options.length > 0
@@ -86,9 +87,14 @@ public class JnmofsFileChannelTest {
             assertEquals(11, channel.read(buf));
             assertEquals(11, channel.position());
             buf.flip();
+            var readStr = StandardCharsets.UTF_8.decode(buf).toString();
+            assertEquals("hello-folks", readStr);
+            buf.flip();
             assertEquals(-1, channel.read(buf));
             assertEquals(11, channel.position());
-            assertThrows(NonWritableChannelException.class, channel::lock);
+            assertThrows(NonWritableChannelException.class, () ->
+                channel.write(buffer("test"))
+            );
         }
     }
 }

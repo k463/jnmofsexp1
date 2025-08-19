@@ -31,9 +31,12 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class JnmofsRegularFile extends JnmofsFileSystemObject {
 
@@ -62,7 +65,7 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
 
         private volatile boolean open = true;
         private final Set<? extends OpenOption> openOptions;
-        private int position = 0;
+        private int channelPosition = 0;
 
         InternalFileChannel(
             Set<? extends OpenOption> options,
@@ -77,71 +80,30 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
 
         @Override
         public int read(ByteBuffer dst) throws IOException {
-            ensureReadable();
-            return withIoLock(() -> {
-                if (position > contents.capacity()) {
-                    return -1;
-                }
-
-                final int bytesRemaining = Math.min(
-                    dst.remaining(),
-                    contents.capacity() - position
-                );
-                contents.position(position);
-                contents.limit(position + bytesRemaining);
-                dst.put(contents);
-
-                position += bytesRemaining;
-                return bytesRemaining;
-            });
+            return read(new ByteBuffer[] { dst }, 0, 1, 0, false);
         }
 
         @Override
         public long read(ByteBuffer[] dsts, int offset, int length)
             throws IOException {
-            ensureReadable();
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException(
-                "Unimplemented method 'read'"
-            );
+            return read(dsts, offset, length, 0, false);
         }
 
         @Override
         public int write(ByteBuffer src) throws IOException {
-            ensureWritable();
-            Objects.requireNonNull(src);
-            return withIoLock(() -> {
-                int bytesWritten = 0;
-                if (openOptions.contains(StandardOpenOption.APPEND)) {
-                    position = contents.capacity();
-                }
-
-                // write
-                final int bytesRemaining = src.remaining();
-                ensureCapacity(position + bytesRemaining);
-                contents.position(position);
-                contents.put(src);
-                bytesWritten = contents.position() - position;
-
-                position += bytesWritten;
-                return bytesWritten;
-            });
+            return write(new ByteBuffer[] { src }, 0, 1, 0, false);
         }
 
         @Override
         public long write(ByteBuffer[] srcs, int offset, int length)
             throws IOException {
-            ensureWritable();
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException(
-                "Unimplemented method 'write'"
-            );
+            return write(srcs, offset, length, 0, false);
         }
 
         @Override
         public long position() throws IOException {
             ensureOpen();
-            return withIoLock(() -> position);
+            return withIoLock(() -> channelPosition);
         }
 
         @Override
@@ -152,7 +114,7 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
                     "position must be > 0, got: %d".formatted(newPosition)
                 );
             }
-            withIoLock(() -> position = (int) newPosition);
+            withIoLock(() -> channelPosition = (int) newPosition);
             return this;
         }
 
@@ -205,31 +167,12 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
 
         @Override
         public int read(ByteBuffer dst, long position) throws IOException {
-            ensureReadable();
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException(
-                "Unimplemented method 'read'"
-            );
+            return read(new ByteBuffer[] { dst }, 0, 1, position, true);
         }
 
         @Override
         public int write(ByteBuffer src, long position) throws IOException {
-            ensureWritable();
-            int iposition = (int) position;
-            // NOTE: this is an absolute position write, so APPEND mode doesn't matter
-            Objects.requireNonNull(src);
-            return withIoLock(() -> {
-                int bytesWritten = 0;
-
-                // write
-                final int bytesRemaining = src.remaining();
-                ensureCapacity(iposition + bytesRemaining);
-                contents.position(iposition);
-                contents.put(src);
-                bytesWritten = contents.position() - iposition;
-
-                return bytesWritten;
-            });
+            return write(new ByteBuffer[] { src }, 0, 1, position, true);
         }
 
         @Override
@@ -271,6 +214,8 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
             if (contents.capacity() > newCap) return;
             ByteBuffer newContents = ByteBuffer.allocate(newCap);
             if (contents.capacity() > 0) {
+                contents.position(0);
+                contents.limit(contents.capacity());
                 newContents.put(contents);
             }
             contents = newContents;
@@ -294,6 +239,78 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
             }
         }
 
+        /**
+         * Read a sequence of bytes from this channel into a subsequence of the
+         * given buffers.
+         *
+         * @param   dsts
+         *          buffers into which the bytes are to be transferred
+         * @param   offset
+         *          offset within the {@code dsts} array of the first buffer
+         *          into which bytes are to be transferred, must be positive
+         *          and not larger than {@code dsts.length}
+         * @param   length
+         *          maximum number of buffers from {@code dsts} array to access
+         *          must be positive and not larger than {@code dsts.length - offset}
+         * @param   position
+         *          file position at which to begin reading bytes, must be
+         *          positive, only used if {@code absolute == true}
+         * @param   absolute
+         *          if true this is an absolute read at the position specified
+         *          in {@code position} argument, without updating the channel's
+         *          current position; if false this is a relative read at the
+         *          channel's current position as reported by {@link #position()}
+         *          which is then updated after the read
+         * @return  number of bytes read, possibly 0, or -1 if the channel has
+         *          reached end-of-stream
+         */
+        private int read(
+            ByteBuffer[] dsts,
+            int offset,
+            int length,
+            long position,
+            boolean absolute
+        ) throws IOException {
+            ensureReadable();
+            Objects.checkFromIndexSize(offset, offset + length, dsts.length);
+            List<ByteBuffer> dstBuffers = Arrays.asList(dsts).subList(
+                offset,
+                offset + length
+            );
+            dstBuffers.forEach(Objects::requireNonNull);
+
+            return withIoLock(() -> {
+                int reqPosition = absolute ? (int) position : channelPosition;
+
+                if (reqPosition >= contents.capacity()) {
+                    return -1;
+                }
+
+                int bytesRead = 0;
+
+                for (ByteBuffer dst : dstBuffers) {
+                    final int bytesAvailable = Math.min(
+                        dst.remaining(),
+                        contents.capacity() - reqPosition
+                    );
+
+                    if (bytesAvailable == 0) continue;
+
+                    contents.position(reqPosition);
+                    contents.limit(reqPosition + bytesAvailable);
+                    dst.put(contents);
+
+                    bytesRead += bytesAvailable;
+                    reqPosition += bytesAvailable;
+                    if (!absolute) {
+                        channelPosition += bytesAvailable;
+                    }
+                }
+
+                return bytesRead;
+            });
+        }
+
         private <T> T withIoLock(Supplier<T> func)
             throws AsynchronousCloseException {
             boolean completed = false;
@@ -308,6 +325,97 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
                 }
             }
             return res;
+        }
+
+        /**
+         * Write a sequence of bytes to this channel from a subsequence of
+         * given buffers.
+         *
+         * @param   srcs
+         *          buffers from which to retrieve the bytes to write
+         * @param   offset
+         *          offset within the {@code srcs} array of the first buffer
+         *          from which bytes are to be retrieved, must be positive and
+         *          not larger than {@code srcs.length}
+         * @param   length
+         *          maximum number of buffers from {@code srcs} array to access
+         *          must be positive and not larger than {@code srcs.length - offset}
+         * @param   position
+         *          file position at which to begin writing bytes, must be
+         *          positive, only used if {@code absolute == true}
+         * @param   absolute
+         *          if true this is an absolute write at the position specified
+         *          in {@code position} argument, without updating the channel's
+         *          current position; if false this is a relative write at the
+         *          channel's current position as reported by {@link #position()}
+         *          which is then updated after the write
+         * @return  number of bytes written
+         * @throws IOException
+         */
+        private int write(
+            ByteBuffer[] srcs,
+            int offset,
+            int length,
+            long position,
+            boolean absolute
+        ) throws IOException {
+            ensureWritable();
+            Objects.checkFromIndexSize(offset, offset + length, srcs.length);
+            List<ByteBuffer> srcBuffers = Arrays.asList(srcs).subList(
+                offset,
+                offset + length
+            );
+            srcBuffers.forEach(Objects::requireNonNull);
+
+            return withIoLock(() -> {
+                int bytesWritten = 0;
+                int reqPosition = absolute ? (int) position : channelPosition;
+
+                if (
+                    !absolute && openOptions.contains(StandardOpenOption.APPEND)
+                ) {
+                    channelPosition = reqPosition = contents.capacity();
+                }
+
+                // ensure capacity
+                final int bytesRemaining = srcBuffers
+                    .stream()
+                    .collect(Collectors.summingInt(ByteBuffer::remaining));
+                ensureCapacity(reqPosition + bytesRemaining);
+
+                // write
+                contents.position(reqPosition);
+                // srcBuffers.forEach(contents::put);
+                srcBuffers.forEach(src -> {
+                    dumpPreviewBufRead(src, true);
+                    contents.put(src);
+                });
+                bytesWritten = contents.position() - reqPosition;
+                dumpPreviewBufRead(contents, false);
+
+                if (!absolute) {
+                    channelPosition += bytesWritten;
+                }
+
+                return bytesWritten;
+            });
+        }
+
+        private void dumpPreviewBufRead(ByteBuffer buf, boolean fromCurrent) {
+            int origPosition = buf.position();
+            int fromPosition = fromCurrent ? origPosition : 0;
+            final byte[] bytes = new byte[buf.capacity() - fromPosition];
+            buf.position(fromPosition);
+            buf.get(bytes);
+            buf.position(origPosition);
+            final String s = new String(bytes);
+            System.out.println(
+                "InternalFileChannel[file.id=%d].dumpPreviewBufRead: buf=%s, read=`%s`".formatted(
+                    id(),
+                    buf.toString(),
+                    s
+                )
+            );
         }
     }
 }
