@@ -73,6 +73,12 @@ public class SimplePathTest {
         // Test relative to absolute
         assertEquals(root.resolve(relativePath), relativePath.toAbsolutePath());
 
+        // Test relative single element path
+        Path singlePath = fs.getPath("single");
+        assertNull(singlePath.getRoot());
+        assertNull(singlePath.getParent());
+        assertEquals(1, singlePath.getNameCount());
+
         // Test path resolution
         Path resolvedPath = relativePath.resolve("to" + sep + "file.txt");
         assertEquals(

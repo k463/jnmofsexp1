@@ -151,6 +151,7 @@ public class SimplePath implements Path {
     @Override
     public Path getParent() {
         if (components.size() == 0) return null;
+        if (components.size() == 1 && !isAbsolute()) return null;
         return create(components.subList(0, components.size() - 1));
     }
 
