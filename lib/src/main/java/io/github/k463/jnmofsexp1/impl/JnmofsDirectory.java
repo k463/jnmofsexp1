@@ -30,6 +30,7 @@ public class JnmofsDirectory extends JnmofsFileSystemObject {
         super(JnmofsObjectType.DIRECTORY);
     }
 
+    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
     public boolean addMember(Path member) {
         if (member.getNameCount() != 1) {
             throw new IllegalArgumentException(

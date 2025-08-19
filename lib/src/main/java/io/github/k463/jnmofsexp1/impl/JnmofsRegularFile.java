@@ -61,7 +61,7 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
 
     // Implement the FileChannel as internal class so that RegularFile doesn't
     // need to effectively also implement the SeekableByteChannel interface.
-    private class InternalFileChannel extends FileChannel {
+    private final class InternalFileChannel extends FileChannel {
 
         private volatile boolean open = true;
         private final Set<? extends OpenOption> openOptions;
@@ -69,7 +69,7 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
 
         InternalFileChannel(
             Set<? extends OpenOption> options,
-            FileAttribute<?>... attrs
+            FileAttribute<?>... attrs // NOPMD - for future use
         ) throws IOException {
             this.openOptions = options;
 
@@ -368,7 +368,6 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
             srcBuffers.forEach(Objects::requireNonNull);
 
             return withIoLock(() -> {
-                int bytesWritten = 0;
                 int reqPosition = absolute ? (int) position : channelPosition;
 
                 if (
@@ -390,7 +389,7 @@ public class JnmofsRegularFile extends JnmofsFileSystemObject {
                     dumpPreviewBufRead(src, true);
                     contents.put(src);
                 });
-                bytesWritten = contents.position() - reqPosition;
+                int bytesWritten = contents.position() - reqPosition;
                 dumpPreviewBufRead(contents, false);
 
                 if (!absolute) {

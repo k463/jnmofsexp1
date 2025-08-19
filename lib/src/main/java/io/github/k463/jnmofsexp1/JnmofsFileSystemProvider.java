@@ -86,7 +86,7 @@ public class JnmofsFileSystemProvider extends FileSystemProvider {
 
     @Override
     public Path getPath(URI uri) {
-        FileSystem fs = getFileSystem(uri);
+        FileSystem fs = getFileSystem(uri); // NOPMD - bad rule
         String uriPath = uri.getPath();
         // JnmofsFileSystem.toUri prepends a "/" if the path is not empty in
         // order to differentiate between root=/, root=@v1, and root=/v/@v2, so
@@ -217,7 +217,7 @@ public class JnmofsFileSystemProvider extends FileSystemProvider {
     // Private implementation details
 
     private FileOperations getFileOps(Path path) throws IOException {
-        FileSystem fs = path.getFileSystem();
+        FileSystem fs = path.getFileSystem(); // NOPMD - bad rule
         FileStore fst = getFileStore(path);
         FileOperations ops;
 
@@ -248,7 +248,7 @@ public class JnmofsFileSystemProvider extends FileSystemProvider {
     private void validateFsUri(URI uri) {
         Objects.requireNonNull(uri);
         String scheme = uri.getScheme();
-        if (scheme == null || !scheme.equalsIgnoreCase(SCHEME)) {
+        if (scheme == null || !SCHEME.equalsIgnoreCase(scheme)) {
             throw new IllegalArgumentException(
                 "scheme should be {}, got {} (uri: {})"
             );

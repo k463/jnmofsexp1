@@ -46,7 +46,7 @@ import java.util.stream.StreamSupport;
 public class JnmofsFileSystem extends FileSystem {
 
     private final Map<Path, JnmofsFileSystemNamespace> namespaces;
-    private final JnmofsFileSystemProvider provider;
+    private final JnmofsFileSystemProvider fsProvider;
     private final List<String> roots;
     private final List<Pattern> rootPatterns;
     private final String separator;
@@ -57,7 +57,7 @@ public class JnmofsFileSystem extends FileSystem {
         URI uri,
         Map<String, ?> env
     ) {
-        this.provider = provider;
+        this.fsProvider = provider;
         this.uri = uri;
 
         Map<String, Object> props = new HashMap<String, Object>(env);
@@ -122,7 +122,7 @@ public class JnmofsFileSystem extends FileSystem {
 
     @Override
     public FileSystemProvider provider() {
-        return this.provider;
+        return this.fsProvider;
     }
 
     @Override
@@ -338,7 +338,7 @@ public class JnmofsFileSystem extends FileSystem {
             //         m.group("path")
             //     )
             // );
-            break;
+            break; // NOPMD - match found, no need to continue
         }
 
         // TODO: we don't know for sure if the given path is meant to be absolute

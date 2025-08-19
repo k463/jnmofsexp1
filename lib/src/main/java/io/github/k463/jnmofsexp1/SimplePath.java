@@ -144,13 +144,13 @@ public class SimplePath implements Path {
 
     @Override
     public Path getFileName() {
-        if (components.size() == 0) return null;
+        if (components.isEmpty()) return null;
         return createRel(components.get(components.size() - 1));
     }
 
     @Override
     public Path getParent() {
-        if (components.size() == 0) return null;
+        if (components.isEmpty()) return null;
         if (components.size() == 1 && !isAbsolute()) return null;
         return create(components.subList(0, components.size() - 1));
     }
@@ -372,7 +372,7 @@ public class SimplePath implements Path {
 
     @Override
     public int compareTo(Path other) {
-        if (this == other) return 0;
+        if (this == other) return 0; // NOPMD - same object check intended
         if (other == null) return 1;
         if (!isSameFs(other)) {
             throw new ClassCastException(

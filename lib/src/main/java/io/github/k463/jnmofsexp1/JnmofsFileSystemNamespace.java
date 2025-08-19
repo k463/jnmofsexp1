@@ -84,7 +84,7 @@ public class JnmofsFileSystemNamespace
         // on init, so ignore them
         try {
             createFsObject(rootPath, JnmofsObjectType.DIRECTORY);
-        } catch (NoSuchFileException | FileAlreadyExistsException e) {}
+        } catch (NoSuchFileException | FileAlreadyExistsException e) {} // NOPMD
     }
 
     // FileStore methods
@@ -283,7 +283,7 @@ public class JnmofsFileSystemNamespace
 
         if (fsObject.getAttributes().isDirectory()) {
             JnmofsDirectory fsDir = (JnmofsDirectory) fsObject;
-            if (fsDir.getMembers().size() > 0) {
+            if (!fsDir.getMembers().isEmpty()) {
                 throw new DirectoryNotEmptyException(path.toString());
             }
         }
@@ -339,7 +339,6 @@ public class JnmofsFileSystemNamespace
                 // move into another directory without renaming, so actual target is
                 targetAbs = targetAbs.resolve(sourceAbs.getFileName());
                 targetExists = Files.exists(targetAbs);
-                targetIsDir = Files.isDirectory(targetAbs);
                 if (targetExists) {
                     throw new FileAlreadyExistsException(targetAbs.toString());
                 }
@@ -485,7 +484,7 @@ public class JnmofsFileSystemNamespace
         Path path,
         JnmofsObjectType type
     ) throws NoSuchFileException, FileAlreadyExistsException {
-        JnmofsFileSystemObject res;
+        JnmofsFileSystemObject res = null;
         switch (type) {
             case FILE:
                 res = new JnmofsRegularFile();
@@ -493,10 +492,6 @@ public class JnmofsFileSystemNamespace
             case DIRECTORY:
                 res = new JnmofsDirectory();
                 break;
-            default:
-                throw new UnsupportedOperationException(
-                    "Unrecognized object type %s".formatted(type)
-                );
         }
 
         Path storePath = toStorePath(path);
