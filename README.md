@@ -25,7 +25,7 @@ Supported features:
   `Files.createDirectory(Path)`, `FileChannel.open(Path)`, `Files.delete(Path)`,
   `Files.move(Path, Path, CopyOption...)`, etc. methods
 * walking through directory trees using [DirectoryStream][jdoc-ds]
-* ZIP file support through nested [JDK.ZipFS][jdoc-zipfs] filesystem (WIP)
+* ZIP file support through nested [JDK.ZipFS][jdoc-zipfs] filesystem
 * [tests](https://github.com/k463/jnmofsexp1/actions/runs/17083855366?pr=1)! 🚨
 
 [jdoc-ds]: https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/nio/file/DirectoryStream.html
