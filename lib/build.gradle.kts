@@ -26,6 +26,8 @@
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
+
+    pmd
 }
 
 repositories {
@@ -49,6 +51,11 @@ dependencies {
 
 // Apply a specific Java toolchain to ease working on different environments.
 // java { toolchain { languageVersion = JavaLanguageVersion.of(24) } }
+
+pmd {
+    ruleSets = listOf("category/java/errorprone.xml", "category/java/bestpractices.xml")
+    toolVersion = "7.16.0"
+}
 
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
